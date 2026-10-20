@@ -1,0 +1,27 @@
+{
+  "name": "atri-bili-library",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Atri B站双插件干净源码库",
+  "workspaces": [
+    "packages/atri-bilibili",
+    "packages/atri-bili-eyes"
+  ],
+  "scripts": {
+    "test": "node --require ./qa/network-guard.cjs --test packages/atri-bilibili/test/*.test.cjs packages/atri-bili-eyes/test/*.test.cjs",
+    "test:integration": "node --require ./qa/network-guard.cjs --test qa/test-*.cjs",
+    "pack": "bash scripts/pack.sh",
+    "check:clean": "python3 scripts/check-clean.py"
+  },
+  "devDependencies": {
+    "koishi": "4.18.11"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kf15884/atri-bili-plugins.git"
+  }
+}

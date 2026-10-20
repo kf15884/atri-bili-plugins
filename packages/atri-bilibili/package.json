@@ -1,0 +1,51 @@
+{
+  "name": "koishi-plugin-atri-bilibili",
+  "version": "0.5.6",
+  "description": "仅用标题简介与弹幕评论形成回复；卡片仅主动推荐/索取；回复格式按HDS",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "autonomy.js",
+    "cards.js",
+    "miniapp.js",
+    "README.md",
+    "test",
+    "social.js",
+    "research.js",
+    "account.js",
+    "qrcode.cjs",
+    "chat-cards.js",
+    "share.js",
+    "independent.js",
+    "独立API说明.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.cjs"
+  },
+  "license": "MIT",
+  "keywords": [
+    "chatbot",
+    "koishi",
+    "plugin",
+    "bilibili"
+  ],
+  "peerDependencies": {
+    "koishi": "^4.18.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "koishi": {
+    "description": {
+      "zh": "HDS 人设与剧情联动：独立API综合视频资料、一句话感想与QQ卡片；可选公开网页读取"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kf15884/atri-bili-plugins.git",
+    "directory": "packages/atri-bilibili"
+  },
+  "bugs": {
+    "url": "https://github.com/kf15884/atri-bili-plugins/issues"
+  }
+}

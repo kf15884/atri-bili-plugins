@@ -1,0 +1,3 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),p=require('../index')
+test('clean library has no built-in personal recipient or bot',()=>{const c=p.Config({});assert.equal(c.targetUserId,'');assert.equal(c.selfId,'');assert.equal(c.mentionUserUid,'');assert.equal(c.cookie,'');assert.equal(c.apiKey,'')})
+test('clean library keeps all public write switches disabled',()=>{const c=p.Config({});for(const k of ['allowLike','allowCoin','allowTriple','allowFavorite','allowFollow','allowUnfollow','allowDynamic','allowDeleteDynamic','publicCommentsEnabled'])assert.equal(c[k],false)})
