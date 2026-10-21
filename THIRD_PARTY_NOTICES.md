@@ -1,9 +1,6 @@
-# 许可与第三方说明
+# Third-party notices
 
-发布者确认已取得 HDS 作者允许，两个插件按 MIT 许可发布，见根目录和各插件目录的 LICENSE。该确认不代表 HDS 核心改为 MIT。qrcode.cjs 为 Kazuhiko Arase 的二维码实现，保留源文件版权与 MIT 链接。
-
-账号和视频功能参考 skills-bili-account / skills-bili-video 模板思路，未把用户上传 ZIP 作为库数据收录。HDS 核心不在本库中；HDS 自身 AGPL-3.0 许可仍独立适用，不能把此库的 MIT 声明当作 HDS 核心许可。
-
-未包含服务器、HDS、Koishi 的完整源码或可执行镜像。若日后再分发第三方组件，请补齐相应许可与源代码义务。
-
-上游项目：https://github.com/ISEKAI-MomoiCore/HDS-Interlude 。本项目是非官方扩展，与上游许可证、版权归属分别处理。
+- `qrcode.cjs`: QR Code Generator for JavaScript, Copyright (c) 2009 Kazuhiko Arase, MIT. Original header retained. It renders only the official login URL locally; it does not connect to a QR service.
+- Endpoint documentation and WBI behavior reference: ILoveScratch2/bilibili-api-collect-new, commit bee4521ead2aa3699d0c77455616101a241c123f. Project documentation is marked CC BY-NC 4.0; no documentation corpus or copied sample payloads are included in this release. Respect the reference project's attribution/non-commercial terms and Bilibili's platform rules.
+- Koishi is a peer dependency; its own license applies.
+- HDS-Interlude is not bundled. The adapter decorates the runtime narrator service through Koishi and intercepts only its validated private outgoing share bubble. No HDS implementation or database is bundled. Its own AGPL license and the user's upstream permissions are separate from this plugin's existing MIT declaration.

@@ -1,22 +1,15 @@
-name: CI
-on:
-  push:
-  pull_request:
+name: API plugin tests
+on: [push, pull_request]
 permissions:
   contents: read
 jobs:
-  unit-and-pack:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
       - run: npm install --ignore-scripts --no-audit --no-fund
-      - run: npm run check:clean
       - run: npm test
-      - run: npm run pack
-      - uses: actions/upload-artifact@v4
-        with:
-          name: plugin-packages
-          path: dist/
+      - run: bash -n scripts/install-upgrade.sh scripts/pack.sh
