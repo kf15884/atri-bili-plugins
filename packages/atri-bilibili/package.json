@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-atri-bilibili",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "只读B站API选片、HDS原叙事与QQ小程序卡片分享；无站内互动或独立模型",
   "main": "index.js",
   "files": [

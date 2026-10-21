@@ -5,11 +5,12 @@ const path = require("node:path"),
 const { Api, Fault, flat } = require("./api"),
   { Session, parseQrCookies, sessionSummary } = require("./session"),
   { Journal } = require("./journal"),
-  { createBridge } = require("./hds");
+  { createBridge } = require("./hds"),
+  { askVideo } = require("./ask");
 exports.name = "atri-bilibili";
 exports.Config = require("./config");
 exports.usage =
-  "## 功能简介\n只读B站API与HDS原人设对话。主动推荐先发QQ卡片再发HDS感想；眼镜0.5.2可让本人分享视频先收到HDS开场，随后读取、生成预回复、随机等待或追问提前发送。\n\n## 最新更新0.7.2\n新增HDS实际开场回执后才读取的观看任务、只存内存的预回复、单任务/追问合并、随机延迟和原生投递。无站内写操作、Puppeteer或真实音视频播放；保留原会话、旧数据与主动联系门控。";
+  "## 功能简介\n只读B站API与HDS原人设对话。主动推荐先发QQ卡片再发HDS感想；眼镜0.5.2可让本人分享视频先收到HDS开场，随后读取、生成预回复、随机等待或追问提前发送。\n\n## 最新更新0.7.3\n本人私聊要视频时（如“有没有好看的视频发我看看”），先读取候选再交给HDS：发不发由HDS按剧本状态与人设决定；发的话先发QQ视频卡片，停顿2–5秒后再按HDS原有分段发她的话；不发就按人设回应。保留0.7.2观看节奏。无站内写操作、Puppeteer或真实音视频播放；保留原会话、旧数据与主动联系门控。";
 exports.apply = (ctx, c) => {
   const root = path.resolve(ctx.baseDir || process.cwd()),
     instances = (globalThis[Symbol.for("atri-bilibili.api-instances")] ||=
@@ -21,7 +22,8 @@ exports.apply = (ctx, c) => {
   let disposed = false,
     readBusy = false,
     qr = null,
-    commandBusy = false;
+    commandBusy = false,
+    askBusy = false;
   const dir = path.join(root, "data", "atri-bilibili"),
     session = new Session(dir, () => c.cookie),
     api = new Api({ cookie: () => session.cookie(), timeout: c.timeoutSec }),
@@ -121,8 +123,28 @@ exports.apply = (ctx, c) => {
   }
   new ApiService();
   const bridge = createBridge(ctx, c, { journal, active, candidates, readIncoming: read });
+  // Explicit "send me a video" requests: read candidates, then let HDS decide in persona.
+  ctx.middleware(async (s, next) => {
+    if (c.askEnabled === false || !allowed(s) || !active() || !bridge.ready || askBusy) return next();
+    const raw = String(s.content || "").trim(),
+      elements = s.elements || h.parse(raw);
+    if (!raw || elements.some((e) => e.type !== "text")) return next();
+    const ask = askVideo(elements.map((e) => e.attrs?.content || "").join(""));
+    if (!ask) return next();
+    askBusy = true;
+    try {
+      const tag = await bridge.request(s, ask.query || c.discoveryKeyword, "ask");
+      s.content = tag + "\n" + raw;
+      s.elements = h.parse(s.content);
+    } catch {
+      // Paused or HDS gone: leave the message untouched for HDS.
+    } finally {
+      askBusy = false;
+    }
+    return next();
+  }, true);
   const help =
-    "只在本人私聊、消息开头精确输入：\n/bili pick [兴趣词或BV号]：让HDS选一个视频并分享卡片与感想\n/bili read BV号：只查看API资料\n/bili search 关键词：只搜索\n/bili status：状态\n/bili pause / /bili resume：暂停/恢复\n/bili login / /bili login-check：官方扫码登录\n/bili account：核对账号\n/bili session：本地脱敏会话状态\n/bili prepare：准备缺失的官方设备标识\n/bili cancel-login / /bili logout\n/bili history：最近卡片结果\n不再支持旧bili.interact、确认、评论、艾特或自然语言操作匹配。";
+    "只在本人私聊、消息开头精确输入：\n/bili pick [兴趣词或BV号]：让HDS选一个视频并分享卡片与感想\n（也可以直接说“有没有好看的视频发我看看”“发个猫猫视频”，由HDS决定发不发）\n/bili read BV号：只查看API资料\n/bili search 关键词：只搜索\n/bili status：状态\n/bili pause / /bili resume：暂停/恢复\n/bili login / /bili login-check：官方扫码登录\n/bili account：核对账号\n/bili session：本地脱敏会话状态\n/bili prepare：准备缺失的官方设备标识\n/bili cancel-login / /bili logout\n/bili history：最近卡片结果\n不再支持旧bili.interact、确认、评论、艾特或自然语言操作匹配。";
   const err = (e) =>
     "未完成 [" +
     (e instanceof Fault ? e.code : "local-error") +
@@ -139,7 +161,7 @@ exports.apply = (ctx, c) => {
       if (op === "help") return h.escape(help);
       if (op === "status")
         return h.escape(
-          `主插件0.7.2；只读API；无站内写操作/独立模型\nHDS：${bridge.status()}\n暂停：${journal.data.paused}；本地状态故障：${journal.fault}\n自主选片：${c.autoEnabled ? "开启（依赖HDS自身后台推进与主动消息许可）" : "关闭"}\n卡片：QQ生成的B站小程序卡片；需send_pb；有回执不代表客户端展示\n读取：${journal.data.readDay?.count || 0}；日上限：${c.readDailyLimit || "不限"}\n管理命令必须以 /bili 开头；眼镜0.5.2可读取本人明确分享的视频。`,
+          `主插件0.7.3；只读API；无站内写操作/独立模型\nHDS：${bridge.status()}\n暂停：${journal.data.paused}；本地状态故障：${journal.fault}\n自主选片：${c.autoEnabled ? "开启（依赖HDS自身后台推进与主动消息许可）" : "关闭"}\n卡片：QQ生成的B站小程序卡片；需send_pb；有回执不代表客户端展示\n读取：${journal.data.readDay?.count || 0}；日上限：${c.readDailyLimit || "不限"}\n管理命令必须以 /bili 开头；眼镜0.5.2可读取本人明确分享的视频。`,
         );
       if (op === "cancel-login") {
         qr = null;

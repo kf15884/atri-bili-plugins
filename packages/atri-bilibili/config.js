@@ -56,5 +56,16 @@ module.exports = Schema.intersect([
       .max(23)
       .default(8)
       .description("后台免打扰结束小时；起止相同不限制"),
+    askEnabled: Schema.boolean()
+      .default(true)
+      .description("本人私聊要视频（如“有没有好看的视频发我”）时读取候选交给HDS；发不发由HDS按剧本状态决定"),
+    cardGapMinSec: Schema.natural()
+      .max(30)
+      .default(2)
+      .description("卡片发出后到HDS正文的最短停顿秒数"),
+    cardGapMaxSec: Schema.natural()
+      .max(30)
+      .default(5)
+      .description("卡片发出后到HDS正文的最长停顿秒数；起止颠倒时自动排序"),
   }).description("03 HDS自主选片与QQ卡片"),
 ]);

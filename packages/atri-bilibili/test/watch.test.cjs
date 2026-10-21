@@ -458,7 +458,7 @@ test("runtime: exact /bili only; ordinary conversation, quoted command and raw B
   }
   assert.equal(next, 8);
   const status = await f.middleware(f.s("/bili status"), () => assert.fail());
-  assert.match(status, /0.7.2/);
+  assert.match(status, /0.7.3/);
   assert.match(status, /HDS服务/);
 });
 test("runtime: wrong user/group cannot invoke command; no HDS means no fake model reply", async (t) => {

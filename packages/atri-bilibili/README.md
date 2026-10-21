@@ -1,4 +1,6 @@
-# Atri Bilibili 0.7.2
+# Atri Bilibili 0.7.3
+
+0.7.3新增“要视频”：本人私聊说“有没有好看的视频发我看看”“发个猫猫视频”等，插件先读取候选交给HDS；发不发由HDS按剧本状态与人设决定。发则先发QQ视频卡片，停顿cardGapMinSec–cardGapMaxSec秒（默认2–5）后按HDS原分段发她的话；不发就按人设回应、不放链接。askEnabled可关闭。
 
 ## 功能简介
 

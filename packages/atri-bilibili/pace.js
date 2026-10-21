@@ -1,13 +1,14 @@
 "use strict";
 const crypto = require('node:crypto');
 const { Fault } = require('./api');
+const { askVideo } = require('./ask');
 const TERMINAL = new Set(['sent','cancelled','failed','unknown']);
 const FOLLOW = /^(?:(?:你|那|这个|这条|那个|刚才(?:的)?|那个视频|这个视频|视频)[，,、\s]*)?(?:看(?:得|到)?(?:怎么(?:样)?|哪|完|好|了|了吗|完了吗)|看得如何|看了没|看完没|看好没|怎么样(?:了|啦|呢)?|如何了|有(?:什么)?感想|感觉(?:如何|怎么样)|说说(?:看|内容|感想)|讲(?:了什么|的是什么|的什么|些什么|什么|了|的)|什么内容|内容(?:是什么|呢)|好看吗|好不好看|还没看完吗)[\s，,。.!！?？呢呀啊吧啦～~]*$/;
 const SUPPLEMENT = /^(?:(?:这个|这条|那个|这|视频)[，,\s]*)?(?:你(?:先)?看(?:看|一下)?|看看(?:这个|这个视频|这条)?|去看(?:看|一下)?|看一下|你觉得呢)[\s，,。.!！?？呀啊吧～~]*$/;
 const STOP = /^(?:不用看了|别看了|不要看了|取消观看|停止观看|先别看了)[\s，,。.!！?？]*$/;
 function isFollowup(text) {
   text=String(text||'').trim();
-  if (!text || text.length>100 || /https?:|BV1|```|\/bili|[<>]/i.test(text)) return false;
+  if (!text || text.length>100 || /https?:|BV1|```|\/bili|[<>]/i.test(text) || askVideo(text)) return false;
   return /^(?:你|那你)?(?:先)?(?:去)?看(?:看|一下)?(?:这个(?:视频)?|这条(?:视频)?|这个片段|一下)?[\s，,。.!！?？呀啊吧]*$/.test(text) || /^(?:这个|这条)(?:视频)?(?:你)?看(?:看|一下)[\s，,。.!！?？呀啊吧]*$/.test(text) || /^(?:看完|看好)(?:了)?(?:再)?(?:告诉我|说说|聊聊)(?:你(?:的)?|一下|你觉得)?(?:感想|看法|内容|怎么样)?[\s，,。.!！?？呀啊吧]*$/.test(text) || FOLLOW.test(text) || SUPPLEMENT.test(text) || /^(?:你|那你)?(?:去)?看(?:完了没|了没有|完了没有)[\s，,。.!！?？]*$/.test(text) || (/视频/.test(text) && /怎么|什么|谁|哪|为什么|吗|如何|感想|看法|进度|评价|觉得/.test(text) && !/点赞|投币|收藏|艾特|评论|发送|发给|转发|@/.test(text));
 }
 function settings(o={}) {
