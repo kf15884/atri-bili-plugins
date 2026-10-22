@@ -37,13 +37,13 @@ cp -a -- "$PROJECT/package.json" "$PROJECT/package-lock.json" "$PROJECT/koishi.y
 cp -a -- "$PROJECT/node_modules" "$PROJECT/data" "$BACKUP/"
 READY=1
 EDITED=1
-VENDOR="$PROJECT/.atri-bili-packages/api-0.7.3"
+VENDOR="$PROJECT/.atri-bili-packages/api-0.7.8-beta.1"
 mkdir -p -m 700 "$VENDOR"
-cp -- "$HERE/dist/koishi-plugin-atri-bilibili-0.7.3.tgz" "$HERE/dist/koishi-plugin-atri-bili-eyes-0.5.2.tgz" "$VENDOR/"
-(umask 022; cd "$PROJECT" && npm install --offline --ignore-scripts --no-audit --no-fund --legacy-peer-deps "$VENDOR/koishi-plugin-atri-bilibili-0.7.3.tgz" "$VENDOR/koishi-plugin-atri-bili-eyes-0.5.2.tgz" >"$BACKUP/install.log" 2>&1)
+cp -- "$HERE/dist/koishi-plugin-atri-bilibili-0.7.8-beta.1.tgz" "$HERE/dist/koishi-plugin-atri-bili-eyes-0.5.3-beta.1.tgz" "$VENDOR/"
+(umask 022; cd "$PROJECT" && npm install --offline --ignore-scripts --no-audit --no-fund --legacy-peer-deps "$VENDOR/koishi-plugin-atri-bilibili-0.7.8-beta.1.tgz" "$VENDOR/koishi-plugin-atri-bili-eyes-0.5.3-beta.1.tgz" >"$BACKUP/install.log" 2>&1)
 node - "$PROJECT" <<'NODE'
 const path=require('node:path'),root=process.argv[2];
-for(const [name,version] of [['koishi-plugin-atri-bilibili','0.7.3'],['koishi-plugin-atri-bili-eyes','0.5.2']]){
+for(const [name,version] of [['koishi-plugin-atri-bilibili','0.7.8-beta.1'],['koishi-plugin-atri-bili-eyes','0.5.3-beta.1']]){
  const p=path.join(root,'node_modules',name);if(require(path.join(p,'package.json')).version!==version)throw Error('安装版本不一致');require(p)
 }
 NODE

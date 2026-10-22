@@ -1,15 +1,15 @@
 {
-  "edition": "api-hds-ask-video",
-  "main": "0.7.3",
-  "eyes": "0.5.2",
-  "baseline_main": "0.7.2",
-  "baseline_eyes": "0.5.2",
+  "edition": "optional-beta-sanitized",
+  "main": "0.7.8-beta.1",
+  "eyes": "0.5.3-beta.1",
+  "baseline_main": "0.7.8",
+  "baseline_eyes": "0.5.3",
   "api_documentation": {
     "repository": "https://github.com/ILoveScratch2/bilibili-api-collect-new",
     "commit": "bee4521ead2aa3699d0c77455616101a241c123f"
   },
   "validation": {
-    "local_tests_passed": 141,
+    "local_tests_passed": 178,
     "local_tests_failed": 0,
     "koishi_runtime": "4.18.11",
     "hds_runtime": "1.0.1-rc56 (npm最近可得版本；生产基线rc57)",
@@ -47,13 +47,43 @@
     "owner-private-ask-for-video-reads-candidates",
     "hds-decides-whether-to-send-from-script-state",
     "card-first-then-pause-then-hds-dialogue",
-    "ask-requests-not-swallowed-as-watch-followups"
+    "ask-requests-not-swallowed-as-watch-followups",
+    "optional-second-server-frames-vision-over-wireguard",
+    "frames-outside-read-lock-cached-per-bv-never-throws",
+    "hds-may-describe-still-frames-not-audio",
+    "second-server-material-frames-plus-opening-audio",
+    "second-server-lines-in-order-a6-gemini-native-audio-via-main-proxy-then-deepseek-frames",
+    "ack-probability-skip-branch-streak-guards",
+    "ack-style-variety-history-dedupe-title-sticker",
+    "ask-candidates-time-boxed-background-pool",
+    "auto-advance-consumes-finished-pool-only",
+    "draft-generation-yields-to-foreground-turn",
+    "delivery-busy-backoff-keeps-draft",
+    "near-repeat-ack-no-second-model-call",
+    "ask-followup-window-10min-same-query",
+    "no-video-in-hand-guard-no-pretend-sent",
+    "deferred-ask-fulfilment-hds-decides-cancel-on-new-message",
+    "status-version-from-package-and-pool-always-shown",
+    "self-watch-after-own-card-share-frames-audio-random-wait",
+    "keep-ask-candidates-across-hds-redecide",
+    "explicit-ask-with-candidates-defaults-to-send",
+    "real-card-delivery-truth-in-prompt",
+    "ask-query-drops-watch-verbs",
+    "ask-candidate-card-diagnostic-logs"
   ],
   "privacy": "no real credentials, private diaries, runtime state or account defaults bundled; prior local data preserved",
   "limits": [
     "API text/subtitles are not audio/video playback",
+    "frames are a few still images; audio is only the opening segment (default 10 min), understood by a model",
     "HDS controls whether and when to send",
     "QQ send_pb support required",
     "local mocked tests are not server or client-rendering acceptance"
-  ]
+  ],
+  "release_policy": {
+    "prerelease": true,
+    "make_latest": false,
+    "branch": "beta/v0.7.8-beta.1",
+    "default_branch_modified": false,
+    "npm_publish": false
+  }
 }

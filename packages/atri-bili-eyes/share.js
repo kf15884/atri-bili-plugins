@@ -38,8 +38,22 @@ function parseCard(raw) {
     return refs;
   } catch { return []; }
 }
+// Title as a person sees it on the QQ card (not read from Bilibili). Generic app names are ignored.
+function cardTitle(raw) {
+  try {
+    if (typeof raw === 'string' && raw.length > 32768) return '';
+    const d = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const meta = d?.meta || d?.metaData;
+    for (const v of [meta?.detail_1?.desc, meta?.news?.title, d?.prompt]) {
+      const t = typeof v === 'string' ? v.replace(/^\[[^\]]{1,12}\]\s*/, '').replace(/\s+/g, ' ').trim() : '';
+      if (t && !/^(?:哔哩哔哩|bilibili|B站)$/i.test(t)) return t.slice(0, 80);
+    }
+  } catch {}
+  return '';
+}
 function collect(session) {
   const refs = new Set(), texts = [];
+  let title = '';
   let nodes = 0;
   function walk(es, depth = 0) {
     if (depth > 6 || !Array.isArray(es)) return;
@@ -47,7 +61,9 @@ function collect(session) {
       if (++nodes > 100) return;
       if (e?.type === 'text') texts.push(String(e.attrs?.content || '').slice(0, 8192));
       else if (['json', 'onebot:json'].includes(e?.type)) {
-        for (const ref of parseCard(e.attrs?.data)) refs.add(ref);
+        const found = parseCard(e.attrs?.data);
+        for (const ref of found) refs.add(ref);
+        if (found.length && !title) title = cardTitle(e.attrs?.data);
       } else if (!['quote', 'forward', 'message', 'xml', 'code'].includes(e?.type)) walk(e?.children, depth + 1);
     }
   }
@@ -61,6 +77,6 @@ function collect(session) {
   }
   const bare = text.replace(/https?:\/\/[^\s<>"']+/g, '');
   for (const m of bare.matchAll(new RegExp('(?<![A-Za-z0-9_])(' + BV + ')(?![A-Za-z0-9_])', 'g'))) refs.add(m[1]);
-  return { text, refs: [...refs].slice(0, 4), ignored: false };
+  return { text, refs: [...refs].slice(0, 4), ignored: false, title };
 }
-module.exports = { collect, parseCard, videoRef };
+module.exports = { collect, parseCard, videoRef, cardTitle };

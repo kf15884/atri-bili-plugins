@@ -24,5 +24,11 @@
     "server-install-scripts"
   ],
   "source_release_zip_sha256": "92a64badde62723ae06bab8ee15bb0ef0004784af55de0fa96c5c79bf6af398c",
-  "repository": "https://github.com/kf15884/atri-bili-plugins"
+  "repository": "https://github.com/kf15884/atri-bili-plugins",
+  "public_release": {
+    "main": "0.7.8-beta.1",
+    "eyes": "0.5.3-beta.1",
+    "prerelease": true,
+    "stable_main_unchanged": true
+  }
 }

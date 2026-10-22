@@ -6,11 +6,12 @@ const { Api, Fault, flat } = require("./api"),
   { Session, parseQrCookies, sessionSummary } = require("./session"),
   { Journal } = require("./journal"),
   { createBridge } = require("./hds"),
-  { askVideo } = require("./ask");
+  { askVideo, askFollowup } = require("./ask"),
+  { Senses } = require("./senses");
 exports.name = "atri-bilibili";
 exports.Config = require("./config");
 exports.usage =
-  "## 功能简介\n只读B站API与HDS原人设对话。主动推荐先发QQ卡片再发HDS感想；眼镜0.5.2可让本人分享视频先收到HDS开场，随后读取、生成预回复、随机等待或追问提前发送。\n\n## 最新更新0.7.3\n本人私聊要视频时（如“有没有好看的视频发我看看”），先读取候选再交给HDS：发不发由HDS按剧本状态与人设决定；发的话先发QQ视频卡片，停顿2–5秒后再按HDS原有分段发她的话；不发就按人设回应。保留0.7.2观看节奏。无站内写操作、Puppeteer或真实音视频播放；保留原会话、旧数据与主动联系门控。";
+  "## 功能简介\n只读B站API与HDS原人设对话。主动推荐先发QQ卡片再发HDS感想；眼镜插件可让本人分享视频先收到HDS开场，随后读取、生成预回复、随机等待或追问提前发送。\n\n## 最新更新0.7.8\n要视频更连贯：要视频后10分钟内说“再发一次”“挑好了吗”“视频呢”等按同一请求处理；候选没读好时，读好后（askDeferSec，默认120秒内、期间你没再发消息）由HDS决定是否补发；手上没视频时不会再说“看这个”。Atri自己分享卡片后也会自己点开看（第二台画面+声音），随机等待30–120秒再补一段感想（selfWatchEnabled）。\n\n## 0.7.7\n消息处理优化：要视频时候选最多等4秒（askWaitSec），超时先由HDS自然回应、后台读好的下次直接用；自动选片不在HDS回合里等网络，只用后台读好的候选；观看任务生成与投递前让位HDS正在处理的回合，忙碌时等待而不丢草稿。\n\n## 0.7.6\n观看开场随机化与多样化：配合眼镜0.5.3，约70%先回一句、30%已读不回直接去看；开场由HDS按随机说法方向、当下状态生成，避免与最近开场重复，可对标题反应或只发表情包；“等会看”类开场等待更久，不回时读取失败会较快说明。\n\n## 0.7.5\n看视频同时听声音：第二台抽帧并截取开头音频，由第二台按自己配置的线路顺序一起理解画面和声音（如a6api gemini-3.8-flash经主服务器代理，失败再用DeepSeek只看画面）。\n\n## 0.7.4\n可选“04 第二台画面抽帧”：看本人分享的视频时，请第二台服务器（WireGuard内网）抽6帧并用三条识图线路依次尝试，结果作为“静止画面”资料附给HDS；失败或超时只用文字资料。默认关闭。\n\n## 0.7.3\n本人私聊要视频时（如“有没有好看的视频发我看看”），先读取候选再交给HDS：发不发由HDS按剧本状态与人设决定；发的话先发QQ视频卡片，停顿2–5秒后再按HDS原有分段发她的话；不发就按人设回应。保留0.7.2观看节奏。无站内写操作、Puppeteer或真实音视频播放；保留原会话、旧数据与主动联系门控。";
 exports.apply = (ctx, c) => {
   const root = path.resolve(ctx.baseDir || process.cwd()),
     instances = (globalThis[Symbol.for("atri-bilibili.api-instances")] ||=
@@ -23,12 +24,16 @@ exports.apply = (ctx, c) => {
     readBusy = false,
     qr = null,
     commandBusy = false,
-    askBusy = false;
+    askBusy = false,
+    lastAsk = null;
+  const VERSION = require("./package.json").version;
+  const logger = (() => { try { return ctx.logger("atri-bilibili"); } catch { return { info() {}, warn() {} }; } })();
   const dir = path.join(root, "data", "atri-bilibili"),
     session = new Session(dir, () => c.cookie),
     api = new Api({ cookie: () => session.cookie(), timeout: c.timeoutSec }),
     journal = new Journal(path.join(dir, "watch-state-v2.json")),
-    cache = new Map();
+    cache = new Map(),
+    senses = new Senses(c);
   const allowed = (s) =>
     !disposed &&
     !!c.targetUserId &&
@@ -78,14 +83,19 @@ exports.apply = (ctx, c) => {
         query || "",
       )
     )
-      return [await read(query)];
-    const rows = query ? await api.search(query) : await api.popular(),
+      return [await framed(await read(query), c.framesScope === "all")];
+    let rows;
+    try { rows = query ? await api.search(query) : await api.popular(); }
+    catch (e) { logger.warn("候选%s失败 [%s]", query ? "搜索" : "热门", e instanceof Fault ? e.code : "local-error"); throw e; }
+    const
       recent = new Set(
         journal.data.reads
           .filter((v) => Date.now() - v.at < c.rewatchDays * 86400000)
           .map((v) => v.bvid),
       ),
       items = [];
+    const fresh = rows.filter((v) => /^BV1[A-Za-z0-9]{9}$/.test(v.bvid) && !recent.has(v.bvid));
+    logger.info("候选：%s「%s」返回%d条，未看过%d条", query ? "搜索" : "热门", query || "", rows.length, fresh.length);
     for (const v of rows
       .filter((v) => /^BV1[A-Za-z0-9]{9}$/.test(v.bvid) && !recent.has(v.bvid))
       .slice(0, c.candidateLimit)) {
@@ -93,11 +103,20 @@ exports.apply = (ctx, c) => {
         items.push(await read(v.bvid));
       } catch (e) {
         if (!active()) throw e;
+        logger.warn("候选读取失败：%s [%s]", v.bvid, e instanceof Fault ? e.code : "local-error");
       }
     }
     if (!items.length) throw new Fault("no-readable-unseen-video");
-    return items;
+    return c.framesScope === "all" ? Promise.all(items.map((v) => framed(v, true))) : items;
   }
+  // Frames run outside the readBusy lock; senses caches per BV and never throws.
+  async function framed(rec, want = true) {
+    if (!want || !senses.on || !rec?.bvid) return rec;
+    const out = await senses.attach(rec);
+    if (!active()) throw new Fault("execution-paused");
+    return out;
+  }
+  const readShared = async (value) => framed(await read(value));
   class ApiService extends Service {
     constructor() {
       super(ctx, "atriBiliApi");
@@ -122,18 +141,26 @@ exports.apply = (ctx, c) => {
     }
   }
   new ApiService();
-  const bridge = createBridge(ctx, c, { journal, active, candidates, readIncoming: read });
+  const bridge = createBridge(ctx, c, { journal, active, candidates, readIncoming: readShared });
   // Explicit "send me a video" requests: read candidates, then let HDS decide in persona.
   ctx.middleware(async (s, next) => {
-    if (c.askEnabled === false || !allowed(s) || !active() || !bridge.ready || askBusy) return next();
+    if (!allowed(s)) return next();
+    // Any owner message cancels a pending deferred ask; a new ask/follow-up creates its own.
+    bridge.ownerMessage();
+    if (c.askEnabled === false || !active() || !bridge.ready || askBusy) return next();
     const raw = String(s.content || "").trim(),
       elements = s.elements || h.parse(raw);
     if (!raw || elements.some((e) => e.type !== "text")) return next();
-    const ask = askVideo(elements.map((e) => e.attrs?.content || "").join(""));
-    if (!ask) return next();
+    const text = elements.map((e) => e.attrs?.content || "").join("");
+    let ask = askVideo(text), query;
+    if (ask) query = ask.query || c.discoveryKeyword;
+    // Within 10 minutes of an ask, "再发一次/挑好了吗/视频呢" continue that same ask.
+    else if (lastAsk && Date.now() - lastAsk.at < 10 * 60000 && askFollowup(text)) query = lastAsk.query;
+    else return next();
+    lastAsk = { query, at: Date.now() };
     askBusy = true;
     try {
-      const tag = await bridge.request(s, ask.query || c.discoveryKeyword, "ask");
+      const tag = await bridge.request(s, query, "ask");
       s.content = tag + "\n" + raw;
       s.elements = h.parse(s.content);
     } catch {
@@ -161,7 +188,7 @@ exports.apply = (ctx, c) => {
       if (op === "help") return h.escape(help);
       if (op === "status")
         return h.escape(
-          `主插件0.7.3；只读API；无站内写操作/独立模型\nHDS：${bridge.status()}\n暂停：${journal.data.paused}；本地状态故障：${journal.fault}\n自主选片：${c.autoEnabled ? "开启（依赖HDS自身后台推进与主动消息许可）" : "关闭"}\n卡片：QQ生成的B站小程序卡片；需send_pb；有回执不代表客户端展示\n读取：${journal.data.readDay?.count || 0}；日上限：${c.readDailyLimit || "不限"}\n管理命令必须以 /bili 开头；眼镜0.5.2可读取本人明确分享的视频。`,
+          `主插件${VERSION}；第二台看视频：${await senses.health()}（范围：${c.framesScope === "all" ? "分享+候选" : "仅分享"}）\n`+`只读API；无站内写操作/独立模型\nHDS：${bridge.status()}\n暂停：${journal.data.paused}；本地状态故障：${journal.fault}\n自主选片：${c.autoEnabled ? "开启（依赖HDS自身后台推进与主动消息许可）" : "关闭"}\n卡片：QQ生成的B站小程序卡片；需send_pb；有回执不代表客户端展示\n读取：${journal.data.readDay?.count || 0}；日上限：${c.readDailyLimit || "不限"}\n管理命令必须以 /bili 开头；本人分享的视频由眼镜插件交给观看任务。`,
         );
       if (op === "cancel-login") {
         qr = null;
@@ -295,6 +322,7 @@ exports.apply = (ctx, c) => {
     disposed = true;
     qr = null;
     session.close();
+    senses.dispose();
     bridge.dispose();
     cache.clear();
     if (instances.get(root) === instance) instances.delete(root);

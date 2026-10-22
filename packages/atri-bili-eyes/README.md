@@ -1,3 +1,5 @@
+Atri子项目，配合[HDS-Interlude](https://github.com/ISEKAI-MomoiCore/HDS-Interlude)使用。可选Beta，非HDS官方；配置填写自己的地址与凭据，不清库、不重建故事。
+
 # Atri Bili Eyes 0.5.2
 
 ## 功能简介

@@ -59,6 +59,30 @@ module.exports = Schema.intersect([
     askEnabled: Schema.boolean()
       .default(true)
       .description("本人私聊要视频（如“有没有好看的视频发我”）时读取候选交给HDS；发不发由HDS按剧本状态决定"),
+    askWaitSec: Schema.natural()
+      .max(20)
+      .default(4)
+      .description("要视频时最多等候选读取的秒数；超时这一轮先由HDS自然回应，读取在后台继续，下次要视频直接用"),
+    candidatePoolMinutes: Schema.natural()
+      .min(1)
+      .max(240)
+      .default(60)
+      .description("后台读好的候选保留分钟数；自动选片只使用已读好的候选，不在HDS回合里等网络"),
+    askDeferSec: Schema.natural()
+      .max(600)
+      .default(120)
+      .description("要视频时候选没读好：读好后多少秒内仍可由HDS决定补发（期间本人再发任何消息就取消）；0关闭补发"),
+    selfWatchEnabled: Schema.boolean()
+      .default(true)
+      .description("Atri自己分享卡片后也自己点开看（第二台画面+声音，未开启则只用文字资料），随后补一段感想；不打断正在看的本人分享"),
+    selfWatchWaitMinSec: Schema.natural()
+      .max(600)
+      .default(30)
+      .description("自己看完后到补发感想的最短随机等待秒数；追问“看了没”等会提前发"),
+    selfWatchWaitMaxSec: Schema.natural()
+      .max(600)
+      .default(120)
+      .description("自己看完后到补发感想的最长随机等待秒数"),
     cardGapMinSec: Schema.natural()
       .max(30)
       .default(2)
@@ -68,4 +92,25 @@ module.exports = Schema.intersect([
       .default(5)
       .description("卡片发出后到HDS正文的最长停顿秒数；起止颠倒时自动排序"),
   }).description("03 HDS自主选片与QQ卡片"),
+  Schema.object({
+    framesEnabled: Schema.boolean()
+      .default(false)
+      .description("看视频时请第二台服务器抽帧并截取开头声音，画面和声音一起理解"),
+    framesUrl: Schema.string()
+      .default("")
+      .description("第二台地址；只走WireGuard内网，不要填公网"),
+    framesToken: Schema.string()
+      .role("secret")
+      .default("")
+      .description("第二台 /etc/atri-senses/config.json 里的 token"),
+    framesScope: Schema.union([
+      Schema.const("shared").description("只抽本人分享的视频"),
+      Schema.const("all").description("本人分享 + 自主选片候选"),
+    ]).default("shared"),
+    framesWaitSec: Schema.natural()
+      .min(20)
+      .max(400)
+      .default(180)
+      .description("整次看视频最多等待秒数（取材+理解）；超时只带文字资料。开启后建议眼镜 taskTimeoutSec 调到300"),
+  }).description("04 第二台看视频（画面+声音）"),
 ]);

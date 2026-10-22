@@ -11,8 +11,17 @@ function askVideo(text) {
   const m = ASK.exec(text) || /[Bb]站(?:上)?(?:有没有|有什么|有啥)()(?:好看|有趣|好玩|有意思)?/.exec(text);
   if (!m) return null;
   const query = m[1]
-    .replace(/关于|有关|相关|什么|啥|好看|有趣|好玩|有意思|新的|最近|一些|几个|一个|给我|发我|给你|看看|我|你|的|个|点|些|呀|啊|吧|呢|[，,、\s~～]/g, "")
+    .replace(/关于|有关|相关|什么|啥|好看|有趣|好玩|有意思|新的|最近|平时|一些|几个|一个|给我|发我|给你|看看|在看|在刷|刷到|刷的|看过|看的|收藏|喜欢|觉得|我|你|的|个|点|些|呀|啊|吧|呢|看|刷|[，,、\s~～]/g, "")
     .slice(0, 12);
   return { query };
 }
-module.exports = { askVideo };
+// Short follow-ups that only make sense right after an ask ("再发一次", "挑好了吗", "视频呢").
+const FOLLOW = /再(?:试|发|来|找|给)|发(?:给我|我|过来|来|了(?:吗|没|么))|(?:卡片|链接)|(?:挑|找|选)(?:好|到)?了?(?:吗|没|么)|(?:视频|片子)呢|还没(?:发|好|找)|怎么(?:还)?没(?:发|动静)|(?:好了|找到了)(?:吗|没|么)/;
+function askFollowup(text) {
+  text = String(text || "").trim();
+  if (!text || text.length > 24 || SKIP.test(text) || NEG.test(text) || OTHER.test(text)) return false;
+  return FOLLOW.test(text);
+}
+// Video/card talk in a turn that has no video in hand: HDS must not pretend it sent one.
+const VIDEOISH = /视频|片子|卡片|[Bb]站|链接|发了(?:吗|没|么)|看这个|发过来|发给我|再发|挑好|找到了/;
+module.exports = { askVideo, askFollowup, VIDEOISH };

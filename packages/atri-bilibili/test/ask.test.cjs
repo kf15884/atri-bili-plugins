@@ -67,7 +67,7 @@ test("ask: HDS chooses to send -> card first, pause, then HDS words in original 
   const decision = await f.service.getNarrator().decide(request({ userMessage: tag + "\n发个猫猫视频给我" }));
   const world = f.received.story.setting.world;
   assert.match(world, /向你要视频/);
-  assert.match(world, /自己决定这次发不发/);
+  assert.match(world, /默认要从中挑一个发出去/);
   assert.match(world, /拆纸箱/);
   assert.match(world, new RegExp(V));
   assert.doesNotMatch(world, /自动回合可以不分享/);
@@ -141,4 +141,24 @@ test("ask: real Koishi + HDS + SQLite middleware tags only the request and keeps
   const cat = { ...base, content: "发个猫猫视频给我" };
   await mws[0](cat, () => {});
   assert.equal(searched, "猫猫");
+});
+
+test("ask: slow candidate read is time-boxed; HDS answers now and the next ask uses the finished read", { timeout: 15000 }, async (t) => {
+  let release, calls = 0;
+  const f = fixture(t, { decision: { script: "Atri想了想。", interaction: { reply: { mode: "immediate", content: "我找找" } } }, candidates: () => { calls++; return new Promise((r) => (release = r)); } });
+  const started = Date.now();
+  const tag = await f.bridge.request({}, "猫猫", "ask");
+  const took = Date.now() - started;
+  assert.ok(took >= 3500 && took < 6000, String(took));
+  await f.service.getNarrator().decide(request({ userMessage: tag + "\n发个猫猫视频" }));
+  assert.match(f.received.story.setting.world, /还在后台读取/);
+  assert.doesNotMatch(f.received.story.setting.world, new RegExp(V));
+  release([rec]);
+  await f.bridge.poolSettled();
+  const t2 = Date.now();
+  const tag2 = await f.bridge.request({}, "猫猫", "ask");
+  assert.ok(Date.now() - t2 < 200);
+  await f.service.getNarrator().decide(request({ userMessage: tag2 + "\n再发一个" }));
+  assert.match(f.received.story.setting.world, new RegExp(V));
+  assert.equal(calls, 1);
 });

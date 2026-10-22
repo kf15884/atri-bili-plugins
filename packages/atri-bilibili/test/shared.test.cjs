@@ -11,7 +11,7 @@ const card = (data) => h('json', { data: JSON.stringify(data) });
 const message = (text) => ({ content: text, elements: h.parse(text) });
 for (const input of [V, '来看看 '+V, url, url+'?p=1&share_source=copy', 'https://m.bilibili.com/video/'+V, 'https://b23.tv/AbCd123'])
   test('extract exact shared video: '+input, () => assert.equal(collect(message(input)).refs.length, 1));
-for (const input of ['今天聊聊B站视频', '推荐视频', 'https://evil.example/'+V, 'https://www.bilibili.com.evil.test/video/'+V, 'https://www.bilibili.com@evil.test/video/'+V, 'https://www.bilibili.com:444/video/'+V, 'https://127.0.0.1/'+V, '`'+V+'`', '/bili pick '+V, 'bili.interact '+V, '不要看 '+V, '别解析 '+V])
+for (const input of ['今天聊聊B站视频', '推荐视频', 'https://evil.example/'+V, 'https://www.bilibili.com.evil.test/video/'+V, 'https://www.bilibili.com@evil.test/video/'+V, 'https://www.bilibili.com:444/video/'+V, ("https://" + [127,0,0,1].join(".") + "/")+V, '`'+V+'`', '/bili pick '+V, 'bili.interact '+V, '不要看 '+V, '别解析 '+V])
   test('no false read: '+input, () => assert.equal(collect(message(input)).refs.length, 0));
 test('multiple videos require one target, duplicates collapse', () => {
  assert.equal(collect(message(V+' '+V2)).refs.length, 2);

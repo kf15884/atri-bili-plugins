@@ -1,0 +1,9 @@
+{
+  "input": "Atri_Bili_API_0.7.8_连贯版.zip",
+  "input_sha256": "3a8777218a8ee9ea4afa660b1a89f8e08403f7dbae29f92d01c78fa0da1ccff7",
+  "main": "0.7.8-beta.1",
+  "eyes": "0.5.3-beta.1",
+  "baseline": "0.7.8 / 0.5.3",
+  "changes": "Beta metadata, empty endpoint default, public docs, synthetic endpoint/SSRF fixtures, matching installer/version assertions. No additional feature fix.",
+  "upstream_hds": "https://github.com/ISEKAI-MomoiCore/HDS-Interlude"
+}

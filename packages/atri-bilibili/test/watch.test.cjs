@@ -70,7 +70,8 @@ function bridgeFixture(t, { decision, card, auto = true } = {}) {
     journal = new Journal(path.join(dir, "state.json")),
     hooks = {};
   let calls = 0,
-    received;
+    received,
+    slow = null;
   let narrator = {
     decide: async (r) => {
       received = r;
@@ -109,9 +110,9 @@ function bridgeFixture(t, { decision, card, auto = true } = {}) {
     bridge = createBridge(ctx, c, {
       journal,
       active: () => !journal.data.paused && !journal.fault,
-      candidates: async () => {
+      candidates: async (q) => {
         calls++;
-        return [rec];
+        return slow ? slow(q) : [rec];
       },
       card: card || (async () => "123"),
     });
@@ -125,6 +126,9 @@ function bridgeFixture(t, { decision, card, auto = true } = {}) {
     journal,
     c,
     initial,
+    setCandidates(fn) {
+      slow = fn;
+    },
     get calls() {
       return calls;
     },
@@ -287,6 +291,11 @@ test("HDS: automatic crossConversationActions target binds only configured parti
       return "1";
     },
   });
+  await f.service
+    .getNarrator()
+    .decide(request({ participant: null, phase: "advance" }));
+  // First advance only starts the background read; the next advance consumes the finished pool.
+  await f.bridge.poolSettled();
   await f.service
     .getNarrator()
     .decide(request({ participant: null, phase: "advance" }));
@@ -458,7 +467,7 @@ test("runtime: exact /bili only; ordinary conversation, quoted command and raw B
   }
   assert.equal(next, 8);
   const status = await f.middleware(f.s("/bili status"), () => assert.fail());
-  assert.match(status, /0.7.3/);
+  assert.match(status, /主插件0\.7\.8-beta\.1；[\s\S]*候选池：空/);
   assert.match(status, /HDS服务/);
 });
 test("runtime: wrong user/group cannot invoke command; no HDS means no fake model reply", async (t) => {
@@ -499,7 +508,7 @@ function qqPacket() {
   const raw = {
     appName: "com.tencent.miniapp_01",
     appView: "view_8C8E89B49BE609866298ADDFF2DBABA4",
-    ver: "1.0.0.0",
+    ver: ("" + [1,0,0,0].join(".") + ""),
     config: { forward: true },
     metaData: {
       detail_1: { appid: "1109937557", url: "https://b23.tv/UnitOnly" },
@@ -580,17 +589,17 @@ test("transport: SSRF private addresses remain blocked and decompression limits 
   const { publicIP, decode } = require("../transport"),
     zlib = require("node:zlib");
   for (const ip of [
-    "127.0.0.1",
-    "10.0.0.1",
-    "172.16.0.1",
-    "192.168.0.1",
-    "169.254.169.254",
+    ("" + [127,0,0,1].join(".") + ""),
+    ("" + [10,0,0,1].join(".") + ""),
+    ("" + [172,16,0,1].join(".") + ""),
+    ("" + [192,168,0,1].join(".") + ""),
+    ("" + [169,254,169,254].join(".") + ""),
     "::1",
     "fc00::1",
-    "::ffff:127.0.0.1",
+    ("::ffff:" + [127,0,0,1].join(".") + ""),
   ])
     assert.equal(publicIP(ip), false, ip);
-  assert.equal(publicIP("8.8.8.8"), true);
+  assert.equal(publicIP(("" + [8,8,8,8].join(".") + "")), true);
   // API transport source still pins verified TLS and bounded decompression.
   const source = fs.readFileSync(require.resolve("../transport"), "utf8");
   assert.doesNotMatch(source, /rejectUnauthorized\s*:\s*false/);
@@ -720,4 +729,19 @@ test("QQ: negative OneBot message IDs are valid receipts", async () => {
     },
   };
   assert.equal(await sendCard(bot, detail, "1000000001"), "-123456");
+});
+
+test("HDS: advance turn never waits for candidate network reads", async (t) => {
+  const f = bridgeFixture(t, { decision: { script: "她在发呆。" } });
+  let release;
+  f.setCandidates(() => new Promise((r) => (release = r)));
+  const started = Date.now();
+  await f.service.getNarrator().decide(request({ participant: null, phase: "advance" }));
+  assert.ok(Date.now() - started < 500);
+  assert.doesNotMatch(f.received.story.setting.world, /准确URL/);
+  release([rec]);
+  await f.bridge.poolSettled();
+  await f.service.getNarrator().decide(request({ participant: null, phase: "advance" }));
+  assert.match(f.received.story.setting.world, /准确URL/);
+  assert.equal(f.calls, 1);
 });

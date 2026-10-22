@@ -1,9 +1,9 @@
 {
   "name": "atri-bili-api-library",
-  "version": "0.7.3",
+  "version": "0.7.8-beta.1",
   "private": true,
   "scripts": {
-    "test": "node --test packages/atri-bilibili/test/*.test.cjs",
+    "test": "node --require ./qa/network-guard.cjs --test packages/atri-bilibili/test/*.test.cjs",
     "pack": "bash scripts/pack.sh"
   },
   "devDependencies": {
