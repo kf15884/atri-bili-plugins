@@ -1,16 +1,16 @@
 {
   "name": "atri-bili-api-library",
-  "version": "0.7.3",
+  "version": "0.7.5-beta.1",
   "private": true,
   "scripts": {
-    "test": "node --test packages/atri-bilibili/test/*.test.cjs",
+    "test": "node --require ./scripts/test-network-guard.cjs --test packages/atri-bilibili/test/*.test.cjs",
     "pack": "bash scripts/pack.sh"
   },
   "devDependencies": {
     "koishi": "4.18.11",
     "@koishijs/plugin-http": "0.6.3",
     "@koishijs/plugin-database-sqlite": "4.7.0",
-    "koishi-plugin-hds-interlude": "1.0.1-rc57"
+    "koishi-plugin-hds-interlude": "1.0.1-rc56"
   },
   "engines": {
     "node": ">=20"

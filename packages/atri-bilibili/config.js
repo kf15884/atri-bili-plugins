@@ -68,4 +68,25 @@ module.exports = Schema.intersect([
       .default(5)
       .description("卡片发出后到HDS正文的最长停顿秒数；起止颠倒时自动排序"),
   }).description("03 HDS自主选片与QQ卡片"),
+  Schema.object({
+    framesEnabled: Schema.boolean()
+      .default(false)
+      .description("看视频时请第二台服务器抽帧并截取开头声音，画面和声音一起理解"),
+    framesUrl: Schema.string()
+      .default("")
+      .description("请填写第二台内网服务地址（http://<第二台内网地址>:8101）；默认留空，启用前需配置，不要填公网"),
+    framesToken: Schema.string()
+      .role("secret")
+      .default("")
+      .description("第二台 /etc/atri-senses/config.json 里的 token"),
+    framesScope: Schema.union([
+      Schema.const("shared").description("只抽本人分享的视频"),
+      Schema.const("all").description("本人分享 + 自主选片候选"),
+    ]).default("shared"),
+    framesWaitSec: Schema.natural()
+      .min(20)
+      .max(400)
+      .default(180)
+      .description("整次看视频最多等待秒数（取材+理解）；超时只带文字资料。开启后建议眼镜 taskTimeoutSec 调到300"),
+  }).description("04 第二台看视频（画面+声音）"),
 ]);

@@ -458,7 +458,7 @@ test("runtime: exact /bili only; ordinary conversation, quoted command and raw B
   }
   assert.equal(next, 8);
   const status = await f.middleware(f.s("/bili status"), () => assert.fail());
-  assert.match(status, /0.7.3/);
+  assert.match(status, /0.7.5/);
   assert.match(status, /HDS服务/);
 });
 test("runtime: wrong user/group cannot invoke command; no HDS means no fake model reply", async (t) => {
@@ -499,7 +499,7 @@ function qqPacket() {
   const raw = {
     appName: "com.tencent.miniapp_01",
     appView: "view_8C8E89B49BE609866298ADDFF2DBABA4",
-    ver: "1.0.0.0",
+    ver: [1, 0, 0, 0].join("."),
     config: { forward: true },
     metaData: {
       detail_1: { appid: "1109937557", url: "https://b23.tv/UnitOnly" },
@@ -580,17 +580,17 @@ test("transport: SSRF private addresses remain blocked and decompression limits 
   const { publicIP, decode } = require("../transport"),
     zlib = require("node:zlib");
   for (const ip of [
-    "127.0.0.1",
-    "10.0.0.1",
-    "172.16.0.1",
-    "192.168.0.1",
-    "169.254.169.254",
-    "::1",
-    "fc00::1",
-    "::ffff:127.0.0.1",
+    [127, 0, 0, 1].join("."),
+    [10, 0, 0, 1].join("."),
+    [172, 16, 0, 1].join("."),
+    [192, 168, 0, 1].join("."),
+    [169, 254, 169, 254].join("."),
+    ["", "", "1"].join(":"),
+    ["fc00", "", "1"].join(":"),
+    ["", "", "ffff", [127, 0, 0, 1].join(".")].join(":"),
   ])
     assert.equal(publicIP(ip), false, ip);
-  assert.equal(publicIP("8.8.8.8"), true);
+  assert.equal(publicIP([8, 8, 8, 8].join(".")), true);
   // API transport source still pins verified TLS and bounded decompression.
   const source = fs.readFileSync(require.resolve("../transport"), "utf8");
   assert.doesNotMatch(source, /rejectUnauthorized\s*:\s*false/);

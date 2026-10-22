@@ -1,6 +1,20 @@
 # Atri Bili：HDS观看节奏版
 
-主插件 **0.7.3** + 眼镜 **0.5.2**。0.7.3新增：本人私聊向Atri要视频时，由HDS按剧本状态决定发不发；发则先发QQ视频卡片，再按HDS原节奏发她的话。本人私聊分享B站链接、BV或B站QQ JSON卡片后，先由HDS回应准备去看，再读实际资料并生成待发送感想，随机等待或在追问时提前分享。
+主插件 **0.7.5-beta.1** + 眼镜 **0.5.2-beta.1**。
+
+> 可选 Beta 预发布，不是稳定版升级建议。稳定版仍为 GitHub 原有 v0.7.2，默认分支与 Latest 保持不变。请先备份并自行选择是否测试。
+
+0.7.5看视频同时听声音（默认关闭）；0.7.3新增：本人私聊向Atri要视频时，由HDS按剧本状态决定发不发；发则先发QQ视频卡片，再按HDS原节奏发她的话。本人私聊分享B站链接、BV或B站QQ JSON卡片后，先由HDS回应准备去看，再读实际资料并生成待发送感想，随机等待或在追问时提前分享。
+
+## Atri 子项目与 HDS 的关系
+
+本项目是 **Atri 项目的子项目**，属于非官方扩展，不是独立聊天核心，也不属于 HDS 官方发行。
+
+- [HDS-Interlude](https://github.com/ISEKAI-MomoiCore/HDS-Interlude) 是剧情、人设、关系、记忆和叙事发送链路的基础；各插件只在各自职责范围内接入，不打包或替代 HDS 核心。HDS 自身许可保持不变。
+- [Atri Bili](https://github.com/kf15884/atri-bili-plugins)：只读视频资料、HDS 观看节奏和 QQ 卡片。
+- [Atri Album](https://github.com/kf15884/atri-album)：剧情拍照、异步生成、看照片与相册回忆。
+- [Atri Journal Dreams](https://github.com/kf15884/atri-journal-dreams)：按剧情主要睡眠生成私有日记与梦境。
+- [旧 Atri Diary](https://github.com/kf15884/koishi-plugin-atri-diary) 是另一个包名与工作流；本次不覆盖它，也不自动迁移数据。
 
 ## 功能简介
 
@@ -18,9 +32,13 @@
 
 预回复未就绪时的相关追问静默合并；生成完成后立即发，不再等待。所有角色文字都由HDS生成，保持原人设、关系、记忆、分段和消息门控，不用插件独立模型/固定模板。分享视频默认只聊感想、不重复回卡。原`/bili pick`和HDS生活推进选片仍为卡片在前、原格式感想在后。
 
-**资料读取不等于真实音视频播放。** 仅取得元信息、可用字幕与可选弹幕；没有画面/音频输入，不假称完整看完。不执行站内评论、艾特、回复、点赞等写入，无Puppeteer依赖。
+**资料读取不等于真实音视频播放。** 仅取得元信息、可用字幕与可选弹幕；开启第二台看视频后，另有几张静止画面和开头一段声音（默认10分钟）的模型理解，不假称完整看完。不执行站内评论、艾特、回复、点赞等写入，无Puppeteer依赖。
 
 ## 最新更新
+
+**0.7.5**：看视频时同时听声音。第二台atri-senses 0.2.0抽6帧并截取开头音频（默认600秒），按第二台config.json的线路顺序理解：line1 a6api gemini-3.8-flash（Gemini原生接口，画面+声音，经主服务器squid代理<请填写主服务器内网代理地址>:<请填写代理端口>），失败再用line2 DeepSeek（只看画面，注明没有声音）。资料以“视频观看资料：画面/听到/整体”交给HDS。framesWaitSec默认180，建议眼镜taskTimeoutSec调到300。需第二台同时升级到0.2.0。
+
+**0.7.4**：新增配置“04 第二台画面抽帧”（framesEnabled默认关闭、framesUrl在本Beta中默认留空，请填写 `http://<请填写第二台内网地址>:8101`、framesToken、framesScope=shared|all、framesWaitSec默认120）。本人分享视频时，读完API资料后请第二台atri-senses（WireGuard内网）匿名取流、均匀抽6帧、按三条识图线路依次尝试（空回/超时/报错自动切换），结果以“画面抽帧（仅静止画面）”附在资料后交给HDS；同一BV缓存6小时；失败或超时只附“画面抽帧未取得[原因]”，不影响原流程。/bili status显示第二台在线、今日任务与线路冷却。开启后建议把眼镜taskTimeoutSec调到240。
 
 **0.7.3**：新增“要视频”流程（askEnabled，默认开启）。识别“有没有什么好看的视频发我看看”“发个猫猫视频”“推荐个原神视频”等明确请求；读取最多candidateLimit个未看过的候选（有关键词就搜索，否则热门），交给HDS按此刻在做什么、心情、关系与刚才的对话自己决定。发：第一气泡放唯一URL，插件先转成QQ小程序卡片，停顿2–5秒（cardGapMinSec/cardGapMaxSec）后发HDS原分段文字；不发：按人设回应，不放链接、不假装已发。要视频的话不会被当作观看追问吞掉。眼镜仍为0.5.2。
 
@@ -32,13 +50,13 @@
 
 ```bash
 cd ~
-unzip -q Atri_Bili_API_0.7.3_要视频版.zip
-cd atri-bili-api-0.7.3
+unzip -q Atri_Bili_API_0.7.5-beta.1.zip
+cd atri-bili-api-0.7.5-beta.1
 sha256sum -c SHA256SUMS
-bash scripts/install-upgrade.sh /opt/hds-interlude hds-interlude.service
+bash scripts/install-upgrade.sh /请填写Koishi项目目录 请填写服务名.service
 ```
 
-两插件都升级，保留原实例、会话与HDS数据。旧目录存在时换新目录，不盲目覆盖混包。脚本私有备份原配置、锁文件、依赖及data后离线安装；不改人设或koishi.yml，仅恢复原本活动的服务。备份含隐私，不上传公开仓库；.atri-bili-packages/api-0.7.3是安装源，不随手删除。
+两插件都升级，保留原实例、会话与HDS数据。旧目录存在时换新目录，不盲目覆盖混包。脚本私有备份原配置、锁文件、依赖及data后离线安装；不改人设或koishi.yml，仅恢复原本活动的服务。备份含隐私，不上传公开仓库；.atri-bili-packages/api-0.7.5-beta.1是安装源，不随手删除。
 
 ## 眼镜配置
 
@@ -84,6 +102,16 @@ bash scripts/install-upgrade.sh /opt/hds-interlude hds-interlude.service
 
 ## 测试与许可
 
-详见docs/测试与边界.md。本轮覆盖真实Koishi4.18.11/HDS1.0.1-rc57/SQLite4.7.0的两种加载顺序，实际叙事持久化及回执确认；外部模型/B站/QQ使用替身，不代表实号验收。生产脚本未执行，尚未发布GitHub/npm。
+详见docs/测试与边界.md。测试环境与结果以docs/测试与边界.md及BUILD-INFO.json为准；覆盖真实Koishi/HDS/SQLite的两种加载顺序，实际叙事持久化及回执确认；外部模型/B站/QQ使用替身，不代表实号验收。生产脚本未执行；本Beta仅供GitHub手动下载，不发布npm。
 
 插件MIT，非[HDS-Interlude](https://github.com/ISEKAI-MomoiCore/HDS-Interlude)官方；HDS核心自身许可不变。第三方说明见THIRD_PARTY_NOTICES.md，QR库保留原MIT版权。
+
+## Beta 配置与隐私
+
+- 默认不启用第二台看听功能。`framesUrl`、`framesToken`、本人QQ号、机器人QQ号均留空，需要部署者填写。
+- 第二台地址填写格式：`http://<请填写第二台内网地址>:8101`；代理填写格式：`http://<请填写主服务器内网代理地址>:<请填写代理端口>`。尖括号内是提示文字，不是可直接连接的地址。
+- 开启看听前，确认第二台已自行部署 atri-senses 0.2.0，填写真实地址与自己生成的 Token，再把眼镜 `taskTimeoutSec` 调至300。第二台服务不包含在这两个插件安装包内。线路名称与模型仅为可选示例，不是内置账号配置。
+- 升级保留原 koishi.yml；已有部署的私有地址不会被公开包替换或上传。
+- 不包含运行配置、账号、Cookie、Token、聊天记录、数据库、人设参考图或私有备份。
+- 安全测试使用保留测试域名与运行时构造的地址，仅用于URL/SSRF验证；版本号、协议字段并非服务器IP。
+- 不从旧发布包直接复制dist：本Beta的两个tgz都由脱敏源码重新构建。

@@ -11,3 +11,13 @@
 依赖主插件0.7.2与HDS rc57兼容接口。仅本人私聊，群聊、其他人、代码/引用/合并转发、旧命令、无目标聊天不读。多视频不猜一个；同视频合并，新视频替换旧任务，取消/重启不重放。关联追问不另开HDS回合，其他聊天正常；复杂隐含追问不保证识别。
 
 原atriBiliEyes.watch/readDiscussion服务保留。全部管理指令、安装和验收见根README，不能将/bili发在SSH。只用已授权的HDS模型，不另填Key/人设；保护会话与旧数据。
+
+## Atri 子项目与 HDS 的关系
+
+本项目是 **Atri 项目的子项目**，属于非官方扩展，不是独立聊天核心，也不属于 HDS 官方发行。
+
+- [HDS-Interlude](https://github.com/ISEKAI-MomoiCore/HDS-Interlude) 是剧情、人设、关系、记忆和叙事发送链路的基础；各插件只在各自职责范围内接入，不打包或替代 HDS 核心。HDS 自身许可保持不变。
+- [Atri Bili](https://github.com/kf15884/atri-bili-plugins)：只读视频资料、HDS 观看节奏和 QQ 卡片。
+- [Atri Album](https://github.com/kf15884/atri-album)：剧情拍照、异步生成、看照片与相册回忆。
+- [Atri Journal Dreams](https://github.com/kf15884/atri-journal-dreams)：按剧情主要睡眠生成私有日记与梦境。
+- [旧 Atri Diary](https://github.com/kf15884/koishi-plugin-atri-diary) 是另一个包名与工作流；本次不覆盖它，也不自动迁移数据。

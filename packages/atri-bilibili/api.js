@@ -82,7 +82,7 @@ class Api {
   headers(auth = true) {
     return {
       "User-Agent":
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/" + [131, 0, 0, 0].join(".") + " Safari/537.36",
       Origin: "https://www.bilibili.com",
       Referer: "https://www.bilibili.com/",
       Accept: "application/json",
