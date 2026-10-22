@@ -1,0 +1,65 @@
+[
+  {
+    "suite": "Bili重建rc57",
+    "tests": 195,
+    "pass": 195,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "Bili旧固定rc57",
+    "tests": 195,
+    "pass": 195,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "照片库重建rc57",
+    "tests": 23,
+    "pass": 23,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "照片库旧rc57",
+    "tests": 23,
+    "pass": 23,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "Search重建rc57",
+    "tests": 56,
+    "pass": 56,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "Search旧rc57",
+    "tests": 56,
+    "pass": 56,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "日记重建rc57",
+    "tests": 13,
+    "pass": 13,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "共享让位及六种组合",
+    "tests": 12,
+    "pass": 12,
+    "fail": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "HDS最终运行文件Issue10/14",
+    "tests": 7,
+    "pass": 7,
+    "fail": 0,
+    "skipped": 0
+  }
+]

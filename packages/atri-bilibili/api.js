@@ -215,19 +215,19 @@ class Api {
     id(d.cid);
     return d;
   }
-  async search(keyword) {
+  async search(keyword, page = 1) {
     if (!String(keyword || "").trim()) throw new Fault("keyword-required");
     const d = await this.get(
       "/x/web-interface/wbi/search/type",
-      { search_type: "video", keyword: String(keyword).slice(0, 100), page: 1 },
+      { search_type: "video", keyword: String(keyword).slice(0, 100), page: Math.max(1, Math.min(5, Number(page) || 1)) },
       { wbi: true },
     );
     return (d?.result || [])
       .filter((x) => /^BV1[A-Za-z0-9]{9}$/.test(x.bvid))
-      .slice(0, 8);
+      .slice(0, 20);
   }
-  async popular() {
-    const d = await this.get("/x/web-interface/popular", { pn: 1, ps: 10 });
+  async popular(page = 1) {
+    const d = await this.get("/x/web-interface/popular", { pn: Math.max(1, Math.min(5, Number(page) || 1)), ps: 20 });
     return d?.list || [];
   }
   async subtitle(d) {

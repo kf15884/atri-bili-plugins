@@ -1,6 +1,6 @@
 {
   "name": "atri-bili-api-library",
-  "version": "0.7.3",
+  "version": "0.8.4-beta.1",
   "private": true,
   "scripts": {
     "test": "node --test packages/atri-bilibili/test/*.test.cjs",

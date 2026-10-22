@@ -65,12 +65,16 @@ const sent = (body = url + "这个分镜挺细致。") => ({
   channelId: "private:1000000001",
   bot: { selfId: "1000000002" },
 });
+const preparedSlot = (f) => (f.journal.data.prepared = { bvid: V, title: "测试视频", video: detail, note: rec.note, thought: "分镜很细", draft: null, at: Date.now() });
+const shareAction = (content = url + "这个分镜挺细致。", participantId = "p1") => ({ script: "Atri想分享。", interaction: { reply: { mode: "none" } }, crossConversationActions: [{ participantId, mode: "immediate", content }] });
+const advance = () => request({ participant: null, phase: "advance" });
 function bridgeFixture(t, { decision, card, auto = true } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bili070-")),
     journal = new Journal(path.join(dir, "state.json")),
     hooks = {};
   let calls = 0,
-    received;
+    received,
+    slow = null;
   let narrator = {
     decide: async (r) => {
       received = r;
@@ -109,9 +113,9 @@ function bridgeFixture(t, { decision, card, auto = true } = {}) {
     bridge = createBridge(ctx, c, {
       journal,
       active: () => !journal.data.paused && !journal.fault,
-      candidates: async () => {
+      candidates: async (q) => {
         calls++;
-        return [rec];
+        return slow ? slow(q) : [rec];
       },
       card: card || (async () => "123"),
     });
@@ -125,6 +129,9 @@ function bridgeFixture(t, { decision, card, auto = true } = {}) {
     journal,
     c,
     initial,
+    setCandidates(fn) {
+      slow = fn;
+    },
     get calls() {
       return calls;
     },
@@ -185,9 +192,10 @@ test("HDS: ordinary user turns add capability only, zero API reads and no origin
   assert.equal(r.story.setting.world, "原世界");
   assert.equal(r.story.setting.character.profile, "原人设");
 });
-test("HDS: explicit request reads once, uses actual notes, then sends card before unchanged HDS words", async (t) => {
+test("HDS: prepared video on allowed advance → card before unchanged HDS words, never repeats", async (t) => {
   const events = [],
     f = bridgeFixture(t, {
+      decision: shareAction(),
       card: async (_b, v, u, _a, submit) => {
         assert.equal(v.bvid, V);
         assert.equal(u, "1000000001");
@@ -195,24 +203,19 @@ test("HDS: explicit request reads once, uses actual notes, then sends card befor
         events.push("card");
         return "123";
       },
-    }),
-    tag = await f.bridge.request({}, "动画");
-  const r = request({
-      userMessage: tag,
-      onEarlyReply: async () => {
-        throw Error("must not stream early");
-      },
-    }),
-    result = await f.service.getNarrator().decide(r);
-  assert.equal(f.calls, 1);
-  assert.match(f.received.story.setting.world, /制作动画需要先画分镜/);
+    });
+  preparedSlot(f);
+  const result = await f.service.getNarrator().decide({ ...advance(), onEarlyReply: async () => { throw Error("must not stream early"); } });
+  assert.equal(f.calls, 0, "prepared share never reads candidates");
+  assert.match(f.received.story.setting.world, /分镜很细/);
   assert.equal(f.received.onEarlyReply, undefined);
-  const s = sent(result.interaction.reply.content);
+  const s = sent(result.crossConversationActions[0].content);
   await f.bridge.beforeSend(s);
   events.push(s.content);
   assert.deepEqual(events, ["card", "这个分镜挺细致。"]);
   assert.equal(f.journal.data.shares[0].status, "accepted");
-  await f.bridge.beforeSend(sent(result.interaction.reply.content));
+  assert.equal(f.journal.data.prepared, null);
+  await f.bridge.beforeSend(sent(result.crossConversationActions[0].content));
   assert.equal(events.length, 2);
 });
 test("HDS: withheld replies never cause standalone card", async (t) => {
@@ -245,17 +248,16 @@ test("HDS: group and wrong participant never receive private notes or autonomous
   }
   assert.equal(f.calls, 0);
 });
-test("HDS: automatic candidates only on allowed advance, cooldown even when no share", async (t) => {
-  const f = bridgeFixture(t, { decision: { script: "她看看资料但不发。" } });
-  await f.service
-    .getNarrator()
-    .decide(request({ participant: null, phase: "advance" }));
-  await f.service
-    .getNarrator()
-    .decide(request({ participant: null, phase: "advance" }));
-  assert.equal(f.calls, 1);
-  assert.ok(f.journal.data.lastAttempt > 0);
+test("HDS: ordinary advance never reads candidates; prepared slot kept when HDS does not share", async (t) => {
+  const f = bridgeFixture(t, { decision: { script: "她在发呆。" } });
+  await f.service.getNarrator().decide(advance());
+  assert.doesNotMatch(f.received.story.setting.world, /准确URL/);
+  preparedSlot(f);
+  await f.service.getNarrator().decide(advance());
+  assert.match(f.received.story.setting.world, /准确URL/);
+  assert.equal(f.calls, 0);
   assert.equal(f.journal.data.shares.length, 0);
+  assert.equal(f.journal.data.prepared.bvid, V);
 });
 test("HDS: no auto reads when proactive or auto advance permissions are off", async (t) => {
   const f = bridgeFixture(t, { auto: false });
@@ -271,25 +273,16 @@ test("HDS: no auto reads when proactive or auto advance permissions are off", as
 });
 test("HDS: automatic crossConversationActions target binds only configured participant", async (t) => {
   let calls = 0;
-  const f = bridgeFixture(t, {
-    decision: {
-      script: "Atri想分享。",
-      crossConversationActions: [
-        {
-          participantId: "p1",
-          mode: "immediate",
-          content: url + "这个镜头很妙。",
-        },
-      ],
-    },
-    card: async () => {
-      calls++;
-      return "1";
-    },
-  });
-  await f.service
-    .getNarrator()
-    .decide(request({ participant: null, phase: "advance" }));
+  const card = async () => { calls++; return "1"; };
+  const g = bridgeFixture(t, { decision: shareAction(url + "这个镜头很妙。", "p2"), card });
+  preparedSlot(g);
+  await g.service.getNarrator().decide(advance());
+  const o = sent(url + "这个镜头很妙。");
+  await g.bridge.beforeSend(o);
+  assert.equal(calls, 0);
+  const f = bridgeFixture(t, { decision: shareAction(url + "这个镜头很妙。"), card });
+  preparedSlot(f);
+  await f.service.getNarrator().decide(advance());
   const s = sent(url + "这个镜头很妙。");
   await f.bridge.beforeSend(s);
   assert.equal(calls, 1);
@@ -316,14 +309,15 @@ test("HDS: do not transform unrelated messages, wrong recipient, group or multip
 test("HDS: card timeout leaves original URL, records unknown, never repeats", async (t) => {
   let calls = 0;
   const f = bridgeFixture(t, {
-      card: async (_b, _v, _u, _a, submit) => {
-        submit();
-        calls++;
-        throw new Fault("qq-outcome-unknown");
-      },
-    }),
-    tag = await f.bridge.request({}, "");
-  await f.service.getNarrator().decide(request({ userMessage: tag }));
+    decision: shareAction(),
+    card: async (_b, _v, _u, _a, submit) => {
+      submit();
+      calls++;
+      throw new Fault("qq-outcome-unknown");
+    },
+  });
+  preparedSlot(f);
+  await f.service.getNarrator().decide(advance());
   const s = sent();
   await f.bridge.beforeSend(s);
   assert.equal(s.content, url + "这个分镜挺细致。");
@@ -458,7 +452,7 @@ test("runtime: exact /bili only; ordinary conversation, quoted command and raw B
   }
   assert.equal(next, 8);
   const status = await f.middleware(f.s("/bili status"), () => assert.fail());
-  assert.match(status, /0.7.3/);
+  assert.match(status, /主插件0\.8\.4-beta\.1；[\s\S]*预备视频：无/);
   assert.match(status, /HDS服务/);
 });
 test("runtime: wrong user/group cannot invoke command; no HDS means no fake model reply", async (t) => {
@@ -606,20 +600,15 @@ test(
     app.baseDir = dir;
     const journal = new Journal(path.join(dir, "state.json")),
       events = [];
-    let narrator = {
-      decide: async () => ({
-        interaction: {
-          reply: { mode: "immediate", content: url + "这个分镜挺细致。" },
-        },
-      }),
-    };
+    let narrator = { decide: async () => shareAction() };
     const service = {
       getNarrator: () => narrator,
       setNarrator: (n) => (narrator = n),
       splitOutgoingMessage: (s) => [s],
       getDesktopRuntimePhase: () => "running",
-      config: { runtime: {} },
+      config: { runtime: { autoAdvanceEnabled: true, allowProactiveMessages: true } },
     };
+    journal.data.prepared = { bvid: V, title: "测试视频", video: detail, note: rec.note, thought: "", draft: null, at: Date.now() };
     const bridge = createBridge(app, config(), {
       journal,
       active: () => true,
@@ -655,12 +644,9 @@ test(
       }
     }
     await app.start();
-    const tag = await bridge.request({}, ""),
-      decision = await service
-        .getNarrator()
-        .decide(request({ userMessage: tag }));
+    const decision = await service.getNarrator().decide(advance());
     await new Encoder(bot, "private:1000000001").send(
-      decision.interaction.reply.content,
+      decision.crossConversationActions[0].content,
     );
     assert.deepEqual(events, ["card", "这个分镜挺细致。"]);
     assert.equal(journal.data.shares[0].status, "accepted");
@@ -720,4 +706,35 @@ test("QQ: negative OneBot message IDs are valid receipts", async () => {
     },
   };
   assert.equal(await sendCard(bot, detail, "1000000001"), "-123456");
+});
+
+test("HDS: stray video links in ordinary private messages are removed", async (t) => {
+  const f = bridgeFixture(t);
+  await f.service.getNarrator().decide(request());
+  const s = sent();
+  await f.bridge.beforeSend(s);
+  assert.equal(s.content, "这个分镜挺细致。");
+  assert.equal(f.journal.data.shares.length, 0);
+});
+
+test("0.8.0 candidates: interest words searched one at a time on pages 1–3; already-read videos stay available", async (t) => {
+  const f = mainFixture(t);
+  await f.ctx.start?.();
+  const search = Api.prototype.search, popular = Api.prototype.popular, note = Api.prototype.note, calls = [];
+  const rows = Array.from({ length: 8 }, (_, i) => ({ bvid: "BV1" + String(i).padStart(9, "a"), title: "t" + i }));
+  Api.prototype.search = async (w, pg) => { calls.push([w, pg]); return rows; };
+  Api.prototype.popular = async (pg) => { calls.push(["(popular)", pg]); return rows; };
+  Api.prototype.note = async (bv) => ({ bvid: bv, detail: { bvid: bv, title: bv }, note: "资料" + bv });
+  t.after(() => { Api.prototype.search = search; Api.prototype.popular = popular; Api.prototype.note = note; });
+  const svc = f.ctx.atriBiliApi;
+  const a = await svc.candidates("mad,动漫剪辑，coser", 4);
+  assert.equal(a.length, 4);
+  for (const [w, pg] of calls) { assert.ok(["mad", "动漫剪辑", "coser"].includes(w), w); assert.ok(pg >= 1 && pg <= 3); }
+  const b = await svc.candidates("mad,动漫剪辑，coser", 4);
+  assert.equal(b.length, 4, "videos read before are not excluded (only shared ones are)");
+  assert.equal(new Set(b.map((x) => x.bvid)).size, 4);
+  assert.ok(b.filter((x) => !a.some((y) => y.bvid === x.bvid)).length >= 1, "never-read videos come first");
+  calls.length = 0;
+  await svc.candidates("", 3);
+  assert.ok(calls.every(([w]) => w === "(popular)"));
 });

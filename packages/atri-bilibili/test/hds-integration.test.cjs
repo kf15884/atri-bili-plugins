@@ -7,7 +7,7 @@ const { test } = require("node:test"),
 const { App, h } = require("koishi"),
   HTTP = require("@koishijs/plugin-http").default,
   SQLite = require("@koishijs/plugin-database-sqlite").default,
-  HDS = require("koishi-plugin-hds-interlude"),
+  HDS = require(process.env.ATRI_HDS_MODULE || "koishi-plugin-hds-interlude"),
   bili = require(".."),
   eyes = require("../../atri-bili-eyes"),
   { Api } = require("../api");
@@ -130,15 +130,7 @@ for (const order of ["bili-first", "hds-first"])
         Api.prototype.popular = popular;
       });
       assert.ok(middleware, "strict command middleware captured");
-      const incoming = { ...session, content: "/bili pick 动画" },
-        search = Api.prototype.search;
-      Api.prototype.search = async () => [rec.detail];
-      t.after(() => (Api.prototype.search = search));
-      let input;
-      await middleware(incoming, async () => {
-        input = incoming.content;
-      });
-      assert.match(input, /atri-bili-request/);
+      const input = "你今天在干嘛";
       const req = {
         story,
         participant,
@@ -153,8 +145,9 @@ for (const order of ["bili-first", "hds-first"])
         },
       };
       const decision = await service.getNarrator().decide(req);
-      assert.equal(decision.interaction.reply.content, body);
-      assert.match(observed.story.setting.world, /实际字幕/);
+      assert.equal(decision.interaction.reply.content, body, "ordinary turn result unchanged by the decorator");
+      assert.match(observed.story.setting.world, /原世界不修改/);
+      assert.match(observed.story.setting.world, /推荐视频统一由插件发QQ卡片/);
       assert.equal(JSON.stringify(story.setting), saved);
       const now = new Date(),
         persisted = await service.serial(story.id, () =>
@@ -184,17 +177,9 @@ for (const order of ["bili-first", "hds-first"])
         ),
         saved,
       );
-      const state = JSON.parse(
-        fs.readFileSync(
-          path.join(dir, "data/atri-bilibili/watch-state-v2.json"),
-          "utf8",
-        ),
-      );
-      assert.equal(
-        state.shares.length,
-        0,
-        "model result and persisted script alone must never send a card",
-      );
+      const stateFile = path.join(dir, "data/atri-bilibili/watch-state-v2.json");
+      const shares = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, "utf8")).shares : [];
+      assert.equal(shares.length, 0, "an ordinary persisted turn never sends a card");
       const status = await middleware(
         { ...session, content: "/bili status" },
         () => {},

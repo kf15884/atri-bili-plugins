@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-atri-bili-eyes",
-  "version": "0.5.2",
+  "version": "0.6.1-beta.1",
   "description": "复用atri-bilibili纯API服务，为HDS当前私聊附加视频文字资料",
   "main": "index.js",
   "files": [
@@ -11,7 +11,7 @@
   "license": "MIT",
   "peerDependencies": {
     "koishi": "^4.18.0",
-    "koishi-plugin-atri-bilibili": ">=0.7.2 <0.8.0"
+    "koishi-plugin-atri-bilibili": ">=0.8.0 <0.9.0 || 0.8.4-beta.1"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,28 @@
+{
+  "input_sha256": "1706929bf3946751476886bef28f54c9be7f4c826b0acf81d5c3fb789efece91",
+  "input_main": "0.8.3",
+  "input_eyes": "0.6.0",
+  "output_main": "0.8.4-beta.1",
+  "output_eyes": "0.6.1-beta.1",
+  "eyes_runtime_unchanged": true,
+  "bili_hds_bridge_unchanged": true,
+  "other_projects_unchanged_from_beta1": true,
+  "modified_files": [
+    "packages/atri-bili-eyes/README.md",
+    "packages/atri-bili-eyes/package.json",
+    "packages/atri-bilibili/README.md",
+    "packages/atri-bilibili/background.js",
+    "packages/atri-bilibili/config.js",
+    "packages/atri-bilibili/index.js",
+    "packages/atri-bilibili/pace.js",
+    "packages/atri-bilibili/package.json",
+    "packages/atri-bilibili/recommend.js",
+    "packages/atri-bilibili/test/background-084.test.cjs",
+    "packages/atri-bilibili/test/hds-integration.test.cjs",
+    "packages/atri-bilibili/test/pace-ack.test.cjs",
+    "packages/atri-bilibili/test/pace-integration.test.cjs",
+    "packages/atri-bilibili/test/pace.test.cjs",
+    "packages/atri-bilibili/test/senses.test.cjs",
+    "packages/atri-bilibili/test/watch.test.cjs"
+  ]
+}
